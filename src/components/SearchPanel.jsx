@@ -71,37 +71,37 @@ export function SearchPanel({ onAdd, onPlayNow, isHost }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={searchable ? 'Search YouTube or paste link' : 'Paste a YouTube link'}
-          className="flex-1 bg-brand-bg border border-slate-700 focus:border-brand-accent outline-none rounded-lg px-2.5 py-1.5 text-sm"
+          className="flex-1 bg-brand-bg border border-brand-border focus:border-brand-text outline-none rounded-lg px-2.5 py-1.5 text-sm"
         />
         <button
           type="submit"
-          className="px-3 py-1.5 rounded-lg bg-brand-accent hover:bg-brand-accent/90 text-sm"
+          className="px-3 py-1.5 rounded-lg bg-brand-accent text-brand-accent-fg hover:opacity-90 text-sm"
           title="Add pasted link"
         >
           Add
         </button>
       </form>
       {!isSearchConfigured() && (
-        <div className="text-[10px] text-slate-500">Search disabled (no API key). Paste a link instead.</div>
+        <div className="text-[10px] text-brand-muted">Search disabled (no API key). Paste a link instead.</div>
       )}
       {quotaOut && (
         <div className="text-[10px] text-amber-400">Search quota reached — paste a link instead. Resets tomorrow.</div>
       )}
       {err && <div className="text-[10px] text-red-400">{err}</div>}
-      {loading && <div className="text-[10px] text-slate-500">Searching…</div>}
+      {loading && <div className="text-[10px] text-brand-muted">Searching…</div>}
       {results.length > 0 && (
         <ul className="space-y-1.5 max-h-[45vh] overflow-y-auto pr-1">
           {results.map((r) => (
-            <li key={r.videoId} className="flex gap-2 p-1.5 rounded-lg bg-brand-bg/60 hover:bg-brand-bg">
+            <li key={r.videoId} className="flex gap-2 p-1.5 rounded-lg bg-brand-hover hover:bg-brand-border/50">
               <img src={r.thumbnail} alt="" className="w-16 h-10 object-cover rounded flex-shrink-0" />
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-slate-200 line-clamp-2 leading-tight" title={r.title}>{r.title}</div>
-                <div className="text-[10px] text-slate-500 truncate">{r.channel}</div>
+                <div className="text-xs text-brand-text line-clamp-2 leading-tight" title={r.title}>{r.title}</div>
+                <div className="text-[10px] text-brand-muted truncate">{r.channel}</div>
               </div>
               <div className="flex flex-col gap-1 flex-shrink-0">
                 <button
                   onClick={() => { onAdd(r); }}
-                  className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600"
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-brand-panel border border-brand-border hover:bg-brand-hover"
                   title="Add to queue"
                 >
                   +
@@ -109,7 +109,7 @@ export function SearchPanel({ onAdd, onPlayNow, isHost }) {
                 {isHost && onPlayNow && (
                   <button
                     onClick={() => onPlayNow(r)}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-brand-accent hover:bg-brand-accent/90"
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-brand-accent text-brand-accent-fg hover:opacity-90"
                     title="Play now"
                   >
                     ▶

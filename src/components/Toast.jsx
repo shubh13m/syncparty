@@ -53,14 +53,14 @@ function ToastItem({ t, onDismiss }) {
     return () => cancelAnimationFrame(id);
   }, []);
   const kindClass = {
-    info: 'bg-slate-800 border-slate-600',
-    success: 'bg-emerald-900/90 border-emerald-600',
-    warn: 'bg-amber-900/90 border-amber-600',
-    error: 'bg-red-900/90 border-red-600',
-  }[t.kind] || 'bg-slate-800 border-slate-600';
+    info: 'bg-brand-panel border-brand-border text-brand-text',
+    success: 'bg-brand-panel border-emerald-500/60 text-emerald-500',
+    warn: 'bg-brand-panel border-amber-500/60 text-amber-500',
+    error: 'bg-brand-panel border-red-500/60 text-red-500',
+  }[t.kind] || 'bg-brand-panel border-brand-border text-brand-text';
   return (
     <div
-      className={`pointer-events-auto border ${kindClass} text-slate-100 text-sm rounded-lg px-3 py-2 shadow-lg transition-all duration-200 ${enter ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}`}
+      className={`pointer-events-auto border ${kindClass} text-sm rounded-lg px-3 py-2 shadow-lg transition-all duration-200 ${enter ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}`}
       onClick={onDismiss}
       role="alert"
     >

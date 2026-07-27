@@ -33,18 +33,18 @@ export function ChatPanel({ messages, uid, onSend }) {
     <div className="flex flex-col h-[60vh]">
       <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-2 pr-1 mb-2">
         {messages.length === 0 && (
-          <div className="text-xs text-slate-500 text-center pt-8">Say hi 👋</div>
+          <div className="text-xs text-brand-muted text-center pt-8">Say hi 👋</div>
         )}
         {messages.map((m) => {
           const mine = m.senderUid === uid;
           return (
             <div key={m.key} className={`text-sm ${mine ? 'text-right' : ''}`}>
-              <div className="text-[10px] text-slate-500 mb-0.5">
+              <div className="text-[10px] text-brand-muted mb-0.5">
                 <span style={{ color: m.senderColor || '#888' }}>{m.senderName || 'anon'}</span>
                 <span className="ml-1">{timeAgo(m.ts)}</span>
               </div>
               <div
-                className={`inline-block px-2.5 py-1.5 rounded-xl max-w-[90%] break-words text-left ${mine ? 'bg-brand-accent/25' : 'bg-brand-bg/70'}`}
+                className={`inline-block px-2.5 py-1.5 rounded-xl max-w-[90%] break-words text-left ${mine ? 'bg-brand-accent2/25' : 'bg-brand-hover'}`}
               >
                 {m.text}
               </div>
@@ -59,12 +59,12 @@ export function ChatPanel({ messages, uid, onSend }) {
           onChange={(e) => setText(e.target.value)}
           maxLength={500}
           placeholder="Message…"
-          className="flex-1 bg-brand-bg border border-slate-700 focus:border-brand-accent outline-none rounded-lg px-2.5 py-1.5 text-sm"
+          className="flex-1 bg-brand-bg border border-brand-border focus:border-brand-text outline-none rounded-lg px-2.5 py-1.5 text-sm"
         />
         <button
           type="submit"
           disabled={!text.trim()}
-          className="px-3 py-1.5 rounded-lg bg-brand-accent hover:bg-brand-accent/90 disabled:opacity-40 text-sm"
+          className="px-3 py-1.5 rounded-lg bg-brand-accent text-brand-accent-fg hover:opacity-90 disabled:opacity-40 text-sm"
         >
           Send
         </button>

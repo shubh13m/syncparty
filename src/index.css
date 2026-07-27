@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Dark theme (default) */
+  --brand-bg: 10 10 10;
+  --brand-panel: 17 17 17;
+  --brand-hover: 26 26 26;
+  --brand-border: 38 38 38;
+  --brand-muted: 115 115 115;
+  --brand-text: 250 250 250;
+  --brand-accent: 255 255 255;
+  --brand-accent-fg: 0 0 0;
+  --brand-accent2: 59 130 246;
+  color-scheme: dark;
+}
+
+:root.light {
+  --brand-bg: 255 255 255;
+  --brand-panel: 250 250 250;
+  --brand-hover: 244 244 245;
+  --brand-border: 228 228 231;
+  --brand-muted: 113 113 122;
+  --brand-text: 24 24 27;
+  --brand-accent: 24 24 27;
+  --brand-accent-fg: 255 255 255;
+  --brand-accent2: 37 99 235;
+  color-scheme: light;
+}
+
 html,
 body,
 #root {
@@ -9,6 +36,25 @@ body,
 }
 
 body {
-  @apply bg-brand-bg text-slate-100 antialiased;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  @apply bg-brand-bg text-brand-text antialiased;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-3 py-1.5 rounded-lg bg-brand-accent text-brand-accent-fg hover:opacity-90 text-sm font-medium transition;
+  }
+  .btn-ghost {
+    @apply px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border hover:bg-brand-hover text-brand-text text-sm transition;
+  }
+  .btn-danger {
+    @apply px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border hover:border-red-500/60 hover:text-red-400 text-brand-text text-sm transition;
+  }
+  .card {
+    @apply bg-brand-panel border border-brand-border rounded-xl;
+  }
+  .input {
+    @apply bg-brand-bg border border-brand-border focus:border-brand-text outline-none rounded-lg px-3 py-2 text-sm placeholder:text-brand-muted transition;
+  }
 }
