@@ -27,7 +27,7 @@ export default function Room() {
   const nav = useNavigate();
   const { name, color, setName } = useUserSession();
   const roomState = useRoom(roomId, { name, color });
-  const { ready, kicked, error, leave } = roomState;
+  const { ready, kicked, ended, error, leave } = roomState;
 
   const handleLeave = async () => {
     await leave();
@@ -48,6 +48,20 @@ export default function Room() {
         <div className="max-w-md text-center bg-brand-panel rounded-2xl p-8 space-y-4">
           <h2 className="text-2xl font-semibold">You were removed</h2>
           <p className="text-slate-400">The host removed you from this room.</p>
+          <Link to="/" className="inline-block px-5 py-2 rounded-lg bg-brand-accent hover:bg-brand-accent/90 font-medium">
+            Back to home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (ended) {
+    return (
+      <div className="min-h-full flex items-center justify-center px-6">
+        <div className="max-w-md text-center bg-brand-panel rounded-2xl p-8 space-y-4">
+          <h2 className="text-2xl font-semibold">Room ended</h2>
+          <p className="text-slate-400">The host ended this room.</p>
           <Link to="/" className="inline-block px-5 py-2 rounded-lg bg-brand-accent hover:bg-brand-accent/90 font-medium">
             Back to home
           </Link>
@@ -83,7 +97,8 @@ export default function Room() {
 }
 
 function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
-  const { uid, hostId, isHost, users } = roomState;
+  const { uid, hostId, isHost, users, kickUser, endRoom } = roomState;
+  const nav = useNavigate();
   const playerContainerRef = useRef(null);
 
   const queue = useRoomQueue(roomId, { uid, name, isHost });
@@ -120,6 +135,8 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(users?.[uid]?.name || '');
   const [tab, setTab] = useState('queue');
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [confirmKick, setConfirmKick] = useState(null); // uid pending kick confirm
 
   const inviteUrl = `${window.location.origin}/room/${roomId}`;
   const copyInvite = async () => {
@@ -163,6 +180,22 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
           >
             {copied ? '✓ Copied!' : 'Copy invite link'}
           </button>
+          {isHost && (
+            <button
+              onClick={() => {
+                if (confirmEnd) {
+                  endRoom().then(() => nav('/'));
+                } else {
+                  setConfirmEnd(true);
+                  setTimeout(() => setConfirmEnd(false), 3000);
+                }
+              }}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${confirmEnd ? 'bg-red-600 hover:bg-red-500' : 'bg-slate-700 hover:bg-red-600'}`}
+              title="End room for everyone"
+            >
+              {confirmEnd ? 'Confirm end?' : 'End room'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -286,21 +319,44 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
                 )}
               </div>
               <ul className="space-y-1.5">
-                {userList.map(([id, u]) => (
-                  <li key={id} className="flex items-center gap-2 text-sm">
-                    <span
-                      className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      style={{ background: u.color || '#888' }}
-                    />
-                    <span className="truncate">
-                      {u.name}
-                      {id === uid && <span className="text-slate-500"> (you)</span>}
-                    </span>
-                    {id === hostId && (
-                      <span className="text-xs text-brand-accent2 ml-auto">host</span>
-                    )}
-                  </li>
-                ))}
+                {userList.map(([id, u]) => {
+                  const isMe = id === uid;
+                  const isHostRow = id === hostId;
+                  const canKick = isHost && !isMe;
+                  const pendingKick = confirmKick === id;
+                  return (
+                    <li key={id} className="flex items-center gap-2 text-sm">
+                      <span
+                        className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ background: u.color || '#888' }}
+                      />
+                      <span className="truncate">
+                        {u.name}
+                        {isMe && <span className="text-slate-500"> (you)</span>}
+                      </span>
+                      {isHostRow && (
+                        <span className="text-xs text-brand-accent2 ml-auto">host</span>
+                      )}
+                      {canKick && (
+                        <button
+                          onClick={() => {
+                            if (pendingKick) {
+                              kickUser(id);
+                              setConfirmKick(null);
+                            } else {
+                              setConfirmKick(id);
+                              setTimeout(() => setConfirmKick((cur) => (cur === id ? null : cur)), 3000);
+                            }
+                          }}
+                          className={`ml-auto text-[10px] px-1.5 py-0.5 rounded ${pendingKick ? 'bg-red-600 hover:bg-red-500' : 'bg-slate-700 hover:bg-red-600'}`}
+                          title="Kick user"
+                        >
+                          {pendingKick ? 'Confirm?' : 'Kick'}
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}

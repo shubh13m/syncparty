@@ -6,6 +6,7 @@ import {
   set,
   update,
   get,
+  remove,
   serverTimestamp,
   runTransaction,
 } from 'firebase/database';
@@ -34,10 +35,12 @@ export function useRoom(roomId, { name, color }) {
   const [meta, setMeta] = useState(null);
   const [users, setUsers] = useState({});
   const [kicked, setKicked] = useState(false);
+  const [ended, setEnded] = useState(false);
   const [error, setError] = useState(null);
   const [ready, setReady] = useState(false);
 
   const leftRef = useRef(false);
+  const sawMetaRef = useRef(false);
 
   useEffect(() => {
     if (!roomId) return;
@@ -101,7 +104,19 @@ export function useRoom(roomId, { name, color }) {
         addRecentRoom(roomId);
 
         // 6. Subscribe to meta / users / kicked
-        const offMeta = onValue(metaRef, (s) => setMeta(s.val()));
+        const offMeta = onValue(metaRef, (s) => {
+          const v = s.val();
+          if (v) {
+            sawMetaRef.current = true;
+            setMeta(v);
+          } else if (sawMetaRef.current && !leftRef.current) {
+            // Meta existed before and is now gone → room was ended.
+            setEnded(true);
+            setMeta(null);
+          } else {
+            setMeta(null);
+          }
+        });
         const offUsers = onValue(usersRef, (s) => setUsers(s.val() || {}));
         const offKicked = onValue(kickedMeRef, (s) => {
           if (s.exists()) setKicked(true);
@@ -156,9 +171,7 @@ export function useRoom(roomId, { name, color }) {
     if (!ready || !uid) return;
     const otherUsers = Object.keys(users).filter((id) => id !== uid);
     if (otherUsers.length === 0 && leftRef.current) {
-      import('firebase/database').then(({ remove }) => {
-        remove(ref(db, `rooms/${roomId}`)).catch(() => {});
-      });
+      remove(ref(db, `rooms/${roomId}`)).catch(() => {});
     }
   }, [users, uid, ready, roomId]);
 
@@ -166,7 +179,6 @@ export function useRoom(roomId, { name, color }) {
     if (!uid || leftRef.current) return;
     leftRef.current = true;
     try {
-      const { remove } = await import('firebase/database');
       await remove(ref(db, `rooms/${roomId}/users/${uid}`));
       // If we were the last one, delete the whole room.
       const snap = await get(ref(db, `rooms/${roomId}/users`));
@@ -178,6 +190,30 @@ export function useRoom(roomId, { name, color }) {
     }
   };
 
+  // Host-only: kick a user. Writes /kicked/{uid}=true then removes /users/{uid}.
+  const kickUser = async (targetUid) => {
+    if (!targetUid || targetUid === uid) return;
+    if (!meta || meta.hostId !== uid) return;
+    try {
+      await set(ref(db, `rooms/${roomId}/kicked/${targetUid}`), true);
+      await remove(ref(db, `rooms/${roomId}/users/${targetUid}`));
+      await update(ref(db, `rooms/${roomId}/meta`), { lastActivity: serverTimestamp() });
+    } catch (e) {
+      console.warn('[useRoom] kick failed', e);
+    }
+  };
+
+  // Host-only: delete the entire room. Everyone still connected will see `ended`.
+  const endRoom = async () => {
+    if (!meta || meta.hostId !== uid) return;
+    leftRef.current = true;
+    try {
+      await remove(ref(db, `rooms/${roomId}`));
+    } catch (e) {
+      console.warn('[useRoom] endRoom failed', e);
+    }
+  };
+
   return {
     ready,
     uid,
@@ -186,7 +222,10 @@ export function useRoom(roomId, { name, color }) {
     users,
     meta,
     kicked,
+    ended,
     error,
     leave,
+    kickUser,
+    endRoom,
   };
 }
