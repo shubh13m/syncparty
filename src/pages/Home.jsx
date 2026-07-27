@@ -6,6 +6,18 @@ import { getRecentRooms, removeRecentRoom } from '../utils/recentRooms';
 import { sweepIdleRooms } from '../utils/roomCleanup';
 import { ThemeToggle } from '../components/ThemeToggle';
 
+function YouTubeMark() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#FF0000"
+        d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.6 31.6 0 0 0 0 12a31.6 31.6 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1c.4-1.9.5-3.8.5-5.8s-.1-3.9-.5-5.8z"
+      />
+      <path fill="#fff" d="M9.75 15.5v-7l6 3.5-6 3.5z" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const nav = useNavigate();
   const { name, color, ready, setName } = useUserSession();
@@ -47,11 +59,12 @@ export default function Home() {
       </div>
       <div className="max-w-md w-full space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-semibold tracking-tight text-brand-text">
-            SyncParty
+          <h1 className="text-5xl font-bold tracking-tight text-brand-text">
+            <span className="text-[#FF0000]">YT</span>Party
           </h1>
-          <p className="text-sm text-brand-muted">
-            Watch YouTube together, perfectly synced.
+          <p className="text-xs text-brand-muted uppercase tracking-widest flex items-center justify-center gap-1.5">
+            <YouTubeMark />
+            Watch YouTube together, perfectly synced
           </p>
         </div>
 

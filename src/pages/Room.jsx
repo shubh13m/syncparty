@@ -201,7 +201,10 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
           <button onClick={onLeave} className="text-brand-muted hover:text-brand-text text-sm transition">
             ← Leave
           </button>
-          <div className="text-sm text-brand-muted truncate">
+          <div className="text-sm font-semibold text-brand-text tracking-tight">
+            <span className="text-[#FF0000]">YT</span>Party
+          </div>
+          <div className="text-sm text-brand-muted truncate hidden sm:block">
             <code className="text-brand-text font-medium">{roomId}</code>
           </div>
         </div>
