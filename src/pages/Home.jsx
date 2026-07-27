@@ -6,18 +6,6 @@ import { getRecentRooms, removeRecentRoom } from '../utils/recentRooms';
 import { sweepIdleRooms } from '../utils/roomCleanup';
 import { ThemeToggle } from '../components/ThemeToggle';
 
-function YouTubeMark() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="#FF0000"
-        d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.6 31.6 0 0 0 0 12a31.6 31.6 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1c.4-1.9.5-3.8.5-5.8s-.1-3.9-.5-5.8z"
-      />
-      <path fill="#fff" d="M9.75 15.5v-7l6 3.5-6 3.5z" />
-    </svg>
-  );
-}
-
 export default function Home() {
   const nav = useNavigate();
   const { name, color, ready, setName } = useUserSession();
@@ -58,12 +46,18 @@ export default function Home() {
         <ThemeToggle />
       </div>
       <div className="max-w-md w-full space-y-6">
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-1 drop-shadow-[0_8px_24px_rgba(255,0,0,0.25)]">
+            <svg width="56" height="56" viewBox="0 0 96 96" aria-hidden="true">
+              {/* YTParty duo-play mark: neutral + red overlapping triangles = watch together */}
+              <path d="M22 20 L58 48 L22 76 Z" className="fill-brand-text" />
+              <path d="M42 20 L78 48 L42 76 Z" fill="#FF0000" />
+            </svg>
+          </div>
           <h1 className="text-5xl font-bold tracking-tight text-brand-text">
             <span className="text-[#FF0000]">YT</span>Party
           </h1>
-          <p className="text-xs text-brand-muted uppercase tracking-widest flex items-center justify-center gap-1.5">
-            <YouTubeMark />
+          <p className="text-xs text-brand-muted uppercase tracking-widest">
             Watch YouTube together, perfectly synced
           </p>
         </div>

@@ -8,3 +8,18 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>
 );
+
+// Dismiss splash after app mounts. Minimum ~900ms so the animation is seen; then fade + remove.
+(function dismissSplash() {
+  const el = document.getElementById('splash');
+  if (!el) return;
+  const start = performance.now();
+  const MIN_MS = 900;
+  requestAnimationFrame(() => {
+    const wait = Math.max(0, MIN_MS - (performance.now() - start));
+    setTimeout(() => {
+      el.classList.add('hide');
+      setTimeout(() => el.remove(), 400);
+    }, wait);
+  });
+})();

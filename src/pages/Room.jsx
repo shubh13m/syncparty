@@ -201,8 +201,12 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
           <button onClick={onLeave} className="text-brand-muted hover:text-brand-text text-sm transition">
             ← Leave
           </button>
-          <div className="text-sm font-semibold text-brand-text tracking-tight">
-            <span className="text-[#FF0000]">YT</span>Party
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-brand-text tracking-tight">
+            <svg width="18" height="18" viewBox="0 0 96 96" aria-hidden="true">
+              <path d="M22 20 L58 48 L22 76 Z" className="fill-brand-text" />
+              <path d="M42 20 L78 48 L42 76 Z" fill="#FF0000" />
+            </svg>
+            <span><span className="text-[#FF0000]">YT</span>Party</span>
           </div>
           <div className="text-sm text-brand-muted truncate hidden sm:block">
             <code className="text-brand-text font-medium">{roomId}</code>

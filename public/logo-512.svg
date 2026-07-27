@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- YTParty PWA icon: dark canvas + duo-play mark (neutral + red) -->
+  <rect width="512" height="512" rx="96" fill="#0a0a0a"/>
+  <path d="M148 148 L296 256 L148 364 Z" fill="#fafafa"/>
+  <path d="M228 148 L376 256 L228 364 Z" fill="#FF0000"/>
+</svg>
