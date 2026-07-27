@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUserSession } from '../hooks/useUserSession';
 import { useRoom } from '../hooks/useRoom';
@@ -8,6 +8,7 @@ import { useChat } from '../hooks/useChat';
 import { QueuePanel } from '../components/QueuePanel';
 import { ChatPanel } from '../components/ChatPanel';
 import { SearchPanel } from '../components/SearchPanel';
+import { useToast } from '../components/Toast';
 
 const STATE_LABELS = {
   '-1': 'unstarted',
@@ -99,7 +100,25 @@ export default function Room() {
 function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
   const { uid, hostId, isHost, users, kickUser, endRoom } = roomState;
   const nav = useNavigate();
+  const toast = useToast();
   const playerContainerRef = useRef(null);
+
+  // Track host promotion: fire toast when *we* become host after previously not being host.
+  const prevIsHostRef = useRef(null);
+  useEffect(() => {
+    // Skip the very first observed value (that's the initial state, not a promotion).
+    if (prevIsHostRef.current === null) {
+      prevIsHostRef.current = isHost;
+      return;
+    }
+    if (isHost && !prevIsHostRef.current) {
+      toast.success('You are now the host');
+    }
+    prevIsHostRef.current = isHost;
+  }, [isHost, toast]);
+
+  // Fire a toast when a video error occurs.
+  const prevVideoErrorRef = useRef(null);
 
   const queue = useRoomQueue(roomId, { uid, name, isHost });
   const chat = useChat(roomId, { uid, name, color });
@@ -127,6 +146,14 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
     containerRef: playerContainerRef,
     onEnded: handleEnded,
   });
+
+  // Video error toast (fires once per new error).
+  useEffect(() => {
+    if (player.videoError && player.videoError !== prevVideoErrorRef.current) {
+      toast.error(player.videoError);
+    }
+    prevVideoErrorRef.current = player.videoError;
+  }, [player.videoError, toast]);
 
   playerRefHolder.current = player;
   currentVideoIdRef.current = player.playback?.videoId || null;
@@ -158,12 +185,17 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
     player.hostControls.loadVideo(meta.videoId);
   };
 
+  const doKick = async (targetId, targetName) => {
+    await kickUser(targetId);
+    toast.info(`Removed ${targetName || 'user'}`);
+  };
+
   const userList = Object.entries(users);
   const viewerCount = userList.length;
 
   return (
-    <div className="min-h-full p-4 md:p-6 max-w-6xl mx-auto">
-      <header className="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <div className="min-h-full p-2 sm:p-4 md:p-6 max-w-6xl mx-auto">
+      <header className="flex flex-wrap items-center justify-between gap-2 mb-3 sm:mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <button onClick={onLeave} className="text-slate-400 hover:text-slate-200 text-sm">
             ← Leave
@@ -178,7 +210,12 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
             onClick={copyInvite}
             className="px-3 py-1.5 rounded-lg bg-brand-accent hover:bg-brand-accent/90 text-sm font-medium"
           >
-            {copied ? '✓ Copied!' : 'Copy invite link'}
+            {copied ? '✓ Copied!' : (
+              <>
+                <span className="hidden sm:inline">Copy invite link</span>
+                <span className="sm:hidden">Invite</span>
+              </>
+            )}
           </button>
           {isHost && (
             <button
@@ -193,13 +230,18 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
               className={`px-3 py-1.5 rounded-lg text-sm font-medium ${confirmEnd ? 'bg-red-600 hover:bg-red-500' : 'bg-slate-700 hover:bg-red-600'}`}
               title="End room for everyone"
             >
-              {confirmEnd ? 'Confirm end?' : 'End room'}
+              {confirmEnd ? 'Confirm?' : (
+                <>
+                  <span className="hidden sm:inline">End room</span>
+                  <span className="sm:hidden">End</span>
+                </>
+              )}
             </button>
           )}
         </div>
       </header>
 
-      <div className="grid md:grid-cols-[1fr_320px] gap-4">
+      <div className="grid md:grid-cols-[1fr_320px] gap-3 md:gap-4">
         <div className="space-y-3">
           <div className="bg-brand-panel rounded-2xl overflow-hidden aspect-video relative">
             <div ref={playerContainerRef} className="w-full h-full" />
@@ -341,7 +383,7 @@ function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
                         <button
                           onClick={() => {
                             if (pendingKick) {
-                              kickUser(id);
+                              doKick(id, u.name);
                               setConfirmKick(null);
                             } else {
                               setConfirmKick(id);
