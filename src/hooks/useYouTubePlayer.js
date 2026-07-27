@@ -14,7 +14,7 @@ import { expectedTime, shouldSeek, PLAYER_STATE } from '../utils/syncMath';
  *
  * Returns { playback, localState, videoError, ready, muted, unmute, resync, hostControls }.
  */
-export function useYouTubePlayer({ roomId, isHost, containerRef }) {
+export function useYouTubePlayer({ roomId, isHost, containerRef, onEnded }) {
   const [playback, setPlayback] = useState(null);
   const [localState, setLocalState] = useState(PLAYER_STATE.UNSTARTED);
   const [videoError, setVideoError] = useState(null);
@@ -26,9 +26,11 @@ export function useYouTubePlayer({ roomId, isHost, containerRef }) {
   const suppressPublishRef = useRef(false);
   const currentVideoIdRef = useRef(null);
   const isHostRef = useRef(isHost);
+  const onEndedRef = useRef(onEnded);
 
   useEffect(() => { isHostRef.current = isHost; }, [isHost]);
   useEffect(() => { playbackRef.current = playback; }, [playback]);
+  useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
 
   // Mount the player. We do this once, keyed off roomId.
   useEffect(() => {
@@ -73,6 +75,10 @@ export function useYouTubePlayer({ roomId, isHost, containerRef }) {
             if (!isHostRef.current) return;
             if (suppressPublishRef.current) return;
             publishHostState(e.data);
+            // Host-only: on ENDED, notify listener so Room can auto-advance from queue.
+            if (e.data === PLAYER_STATE.ENDED) {
+              try { onEndedRef.current?.(); } catch (err) { console.warn('[player] onEnded handler threw', err); }
+            }
           },
           onError: (e) => {
             const map = {

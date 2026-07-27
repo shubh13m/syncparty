@@ -1,9 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUserSession } from '../hooks/useUserSession';
 import { useRoom } from '../hooks/useRoom';
 import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
-import { parseYouTubeId } from '../utils/youtubeUrl';
+import { useRoomQueue } from '../hooks/useRoomQueue';
+import { useChat } from '../hooks/useChat';
+import { QueuePanel } from '../components/QueuePanel';
+import { ChatPanel } from '../components/ChatPanel';
+import { SearchPanel } from '../components/SearchPanel';
 
 const STATE_LABELS = {
   '-1': 'unstarted',
@@ -72,28 +76,50 @@ export default function Room() {
       roomState={roomState}
       onLeave={handleLeave}
       setName={setName}
+      name={name}
+      color={color}
     />
   );
 }
 
-/**
- * RoomContent mounts only when the room is ready, guaranteeing the player's
- * container ref is present in the DOM before useYouTubePlayer's effect runs.
- */
-function RoomContent({ roomId, roomState, onLeave, setName }) {
+function RoomContent({ roomId, roomState, onLeave, setName, name, color }) {
   const { uid, hostId, isHost, users } = roomState;
   const playerContainerRef = useRef(null);
+
+  const queue = useRoomQueue(roomId, { uid, name, isHost });
+  const chat = useChat(roomId, { uid, name, color });
+
+  const queueItemsRef = useRef(queue.items);
+  queueItemsRef.current = queue.items;
+  const currentVideoIdRef = useRef(null);
+  const playerRefHolder = useRef(null);
+
+  const handleEnded = useCallback(() => {
+    if (!isHost) return;
+    const items = queueItemsRef.current;
+    const curId = currentVideoIdRef.current;
+    if (!items.length) return;
+    const idx = curId ? items.findIndex((it) => it.videoId === curId) : -1;
+    const next = idx >= 0 ? items[idx + 1] : items[0];
+    if (!next) return;
+    playerRefHolder.current?.hostControls.loadVideo(next.videoId);
+    if (idx >= 0) queue.removeItem(items[idx].key);
+  }, [isHost, queue]);
+
   const player = useYouTubePlayer({
     roomId,
     isHost,
     containerRef: playerContainerRef,
+    onEnded: handleEnded,
   });
+
+  playerRefHolder.current = player;
+  currentVideoIdRef.current = player.playback?.videoId || null;
 
   const [copied, setCopied] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(users?.[uid]?.name || '');
-  const [urlInput, setUrlInput] = useState('');
-  const [loadErr, setLoadErr] = useState('');
+  const [tab, setTab] = useState('queue');
 
   const inviteUrl = `${window.location.origin}/room/${roomId}`;
   const copyInvite = async () => {
@@ -109,16 +135,10 @@ function RoomContent({ roomId, roomState, onLeave, setName }) {
     setEditingName(false);
   };
 
-  const loadFromUrl = (e) => {
-    e.preventDefault();
-    setLoadErr('');
-    const id = parseYouTubeId(urlInput);
-    if (!id) {
-      setLoadErr('Not a valid YouTube URL or ID');
-      return;
-    }
-    player.hostControls.loadVideo(id);
-    setUrlInput('');
+  const addToQueue = (meta) => queue.add(meta);
+  const playNow = (meta) => {
+    if (!isHost) return;
+    player.hostControls.loadVideo(meta.videoId);
   };
 
   const userList = Object.entries(users);
@@ -146,13 +166,13 @@ function RoomContent({ roomId, roomState, onLeave, setName }) {
         </div>
       </header>
 
-      <div className="grid md:grid-cols-[1fr_260px] gap-4">
+      <div className="grid md:grid-cols-[1fr_320px] gap-4">
         <div className="space-y-3">
           <div className="bg-brand-panel rounded-2xl overflow-hidden aspect-video relative">
             <div ref={playerContainerRef} className="w-full h-full" />
             {!player.playback?.videoId && (
               <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-sm bg-brand-panel pointer-events-none">
-                {isHost ? 'Paste a YouTube link below to start' : 'Waiting for host to play something…'}
+                {isHost ? 'Search or paste a link in the Queue tab →' : 'Waiting for host to play something…'}
               </div>
             )}
             {player.muted && player.playback?.videoId && (
@@ -199,74 +219,91 @@ function RoomContent({ roomId, roomState, onLeave, setName }) {
               <span className="text-xs text-red-400 basis-full">⚠ {player.videoError}</span>
             )}
           </div>
-
-          {isHost && (
-            <form onSubmit={loadFromUrl} className="bg-brand-panel rounded-2xl p-4 space-y-2">
-              <label className="text-sm text-slate-300 font-medium">
-                Load a YouTube video (host only)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  placeholder="https://youtube.com/watch?v=... or video ID"
-                  className="flex-1 bg-brand-bg border border-slate-700 focus:border-brand-accent outline-none rounded-lg px-3 py-2 text-sm"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-brand-accent hover:bg-brand-accent/90 text-sm font-medium"
-                >
-                  Play
-                </button>
-              </div>
-              {loadErr && <div className="text-xs text-red-400">{loadErr}</div>}
-              <p className="text-xs text-slate-500">Queue &amp; search coming in Phase 3.</p>
-            </form>
-          )}
         </div>
 
-        <aside className="bg-brand-panel rounded-2xl p-4 space-y-3 h-fit">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-200">Viewers</div>
-            {editingName ? (
-              <input
-                autoFocus
-                value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
-                onBlur={saveName}
-                onKeyDown={(e) => e.key === 'Enter' && saveName()}
-                className="bg-brand-bg border border-slate-700 rounded px-2 py-0.5 text-xs w-24"
-              />
-            ) : (
+        <aside className="bg-brand-panel rounded-2xl p-3 space-y-3 h-fit">
+          <div className="flex bg-brand-bg/60 rounded-lg p-0.5 text-xs">
+            {[
+              { k: 'queue', label: `Queue${queue.items.length ? ` (${queue.items.length})` : ''}` },
+              { k: 'chat', label: `Chat${chat.messages.length ? ` (${chat.messages.length})` : ''}` },
+              { k: 'viewers', label: `Viewers (${viewerCount})` },
+            ].map((t) => (
               <button
-                onClick={() => {
-                  setNameDraft(users?.[uid]?.name || '');
-                  setEditingName(true);
-                }}
-                className="text-xs text-slate-500 hover:text-slate-300"
+                key={t.k}
+                onClick={() => setTab(t.k)}
+                className={`flex-1 px-2 py-1.5 rounded-md transition ${tab === t.k ? 'bg-brand-accent text-white' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                edit name
+                {t.label}
               </button>
-            )}
-          </div>
-          <ul className="space-y-1.5">
-            {userList.map(([id, u]) => (
-              <li key={id} className="flex items-center gap-2 text-sm">
-                <span
-                  className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  style={{ background: u.color || '#888' }}
-                />
-                <span className="truncate">
-                  {u.name}
-                  {id === uid && <span className="text-slate-500"> (you)</span>}
-                </span>
-                {id === hostId && (
-                  <span className="text-xs text-brand-accent2 ml-auto">host</span>
-                )}
-              </li>
             ))}
-          </ul>
+          </div>
+
+          {tab === 'queue' && (
+            <div className="space-y-3">
+              <SearchPanel onAdd={addToQueue} onPlayNow={playNow} isHost={isHost} />
+              <div className="border-t border-slate-700/50 pt-3">
+                <QueuePanel
+                  items={queue.items}
+                  currentVideoId={player.playback?.videoId}
+                  isHost={isHost}
+                  uid={uid}
+                  onPlayNow={(it) => playNow(it)}
+                  onRemove={queue.removeItem}
+                  onShuffle={queue.shuffle}
+                  onClear={queue.clear}
+                />
+              </div>
+            </div>
+          )}
+
+          {tab === 'chat' && (
+            <ChatPanel messages={chat.messages} uid={uid} onSend={chat.send} />
+          )}
+
+          {tab === 'viewers' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-slate-200">Viewers</div>
+                {editingName ? (
+                  <input
+                    autoFocus
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onBlur={saveName}
+                    onKeyDown={(e) => e.key === 'Enter' && saveName()}
+                    className="bg-brand-bg border border-slate-700 rounded px-2 py-0.5 text-xs w-24"
+                  />
+                ) : (
+                  <button
+                    onClick={() => {
+                      setNameDraft(users?.[uid]?.name || '');
+                      setEditingName(true);
+                    }}
+                    className="text-xs text-slate-500 hover:text-slate-300"
+                  >
+                    edit name
+                  </button>
+                )}
+              </div>
+              <ul className="space-y-1.5">
+                {userList.map(([id, u]) => (
+                  <li key={id} className="flex items-center gap-2 text-sm">
+                    <span
+                      className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ background: u.color || '#888' }}
+                    />
+                    <span className="truncate">
+                      {u.name}
+                      {id === uid && <span className="text-slate-500"> (you)</span>}
+                    </span>
+                    {id === hostId && (
+                      <span className="text-xs text-brand-accent2 ml-auto">host</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </aside>
       </div>
     </div>
