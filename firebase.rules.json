@@ -1,0 +1,53 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null && !data.child('kicked').child(auth.uid).exists()",
+        ".write": "auth != null && (newData.exists() && !data.exists() || data.child('meta/hostId').val() === auth.uid || (data.child('meta/lastActivity').exists() && (now - data.child('meta/lastActivity').val()) > 86400000))",
+
+        "meta": {
+          "hostId": {
+            ".write": "auth != null && (data.val() === auth.uid || !data.exists() || !root.child('rooms/'+$roomId+'/users/'+data.val()).exists())"
+          },
+          "createdAt": {
+            ".write": "auth != null && !data.exists()"
+          },
+          "lastActivity": {
+            ".write": "auth != null && root.child('rooms/'+$roomId+'/users/'+auth.uid).exists()"
+          },
+          "$other": {
+            ".write": "auth != null && root.child('rooms/'+$roomId+'/meta/hostId').val() === auth.uid"
+          }
+        },
+
+        "playback": {
+          ".write": "auth != null && root.child('rooms/'+$roomId+'/meta/hostId').val() === auth.uid"
+        },
+
+        "queue": {
+          "$itemId": {
+            ".write": "auth != null && ((!data.exists() && newData.child('addedByUid').val() === auth.uid) || (data.exists() && !newData.exists() && (data.child('addedByUid').val() === auth.uid || root.child('rooms/'+$roomId+'/meta/hostId').val() === auth.uid)) || (data.exists() && newData.exists() && root.child('rooms/'+$roomId+'/meta/hostId').val() === auth.uid))"
+          }
+        },
+
+        "messages": {
+          "$msgId": {
+            ".write": "auth != null && ((!data.exists() && newData.child('senderUid').val() === auth.uid) || (data.exists() && !newData.exists() && root.child('rooms/'+$roomId+'/meta/hostId').val() === auth.uid))"
+          }
+        },
+
+        "users": {
+          "$uid": {
+            ".write": "auth != null && (($uid === auth.uid && !root.child('rooms/'+$roomId+'/kicked/'+auth.uid).exists()) || (!newData.exists() && root.child('rooms/'+$roomId+'/meta/hostId').val() === auth.uid))"
+          }
+        },
+
+        "kicked": {
+          "$uid": {
+            ".write": "auth != null && root.child('rooms/'+$roomId+'/meta/hostId').val() === auth.uid"
+          }
+        }
+      }
+    }
+  }
+}
